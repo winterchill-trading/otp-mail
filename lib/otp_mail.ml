@@ -6,3 +6,5 @@ module Message = Message
 module Dkim = Dkim
 module Rng = Rng
 module Otp = Otp
+module Otp_store = Otp_store
+module Otp_service = Otp_service
