@@ -23,7 +23,7 @@
  (name otp-mail)
  (synopsis "One-time codes and transactional email for Async")
  (description
-  "otp-mail issues and checks one-time codes (CSPRNG digits, hashed at rest, expiry, attempt limits with lockout backoff, one purpose per code) and sends transactional email: typed templates per locale with a catalogue check, RFC 5322 addresses, MIME (quoted-printable, base64, multipart/alternative, header folding), DKIM rsa-sha256 signing, an in-memory inbox for tests and demos, and an SMTP client with STARTTLS and implicit TLS.")
+  "otp-mail issues and checks one-time codes (CSPRNG digits, hashed at rest, expiry, attempt limits with lockout backoff, one purpose per code) and sends transactional email: typed templates per locale with a catalogue check, RFC 5322 addresses, MIME (quoted-printable, base64, multipart/alternative, header folding), DKIM rsa-sha256 signing, an in-memory inbox for tests and demos, an SMTP client with STARTTLS and implicit TLS, and a JSON-over-HTTPS client for email APIs.")
  (tags
   (otp email smtp mime dkim async))
  (depends
@@ -54,4 +54,8 @@
    (and
     (>= 1.16)
     (< 2.0)))
+  (yojson
+   (and
+    (>= 2.2)
+    (< 4.0)))
   (odoc :with-doc)))

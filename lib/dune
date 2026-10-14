@@ -1,6 +1,6 @@
 (library
  (name otp_mail)
  (public_name otp-mail)
- (libraries core core_unix async async_ssl cryptokit)
+ (libraries core core_unix async async_ssl cryptokit yojson)
  (preprocess
   (pps ppx_jane)))
