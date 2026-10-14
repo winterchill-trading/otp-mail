@@ -215,3 +215,34 @@ let%expect_test "subject length counts characters, not bytes" =
       (problem "subject over 150 characters")))
     |}]
 ;;
+
+let%expect_test "locales awaiting review" =
+  let render () = { Template.Rendered.subject = "s"; text = "t"; html = None } in
+  let t =
+    Template.create
+      ~name:"reviewed"
+      ~samples:[ () ]
+      ~review_pending:Locale.[ ky; ru; ky ]
+      [ Locale.en, render; Locale.ru, render; Locale.ky, render ]
+  in
+  print_s [%sexp (Template.review_pending t : Locale.t list)];
+  print_s
+    [%sexp
+      (Template.Catalogue.review_pending [ T t ] : (string * Locale.t) list)
+      , (Template.Catalogue.check [ T t ] : Template.Catalogue.Problem.t list)];
+  print_s
+    [%sexp
+      (Or_error.try_with (fun () ->
+         Template.create
+           ~name:"missing"
+           ~samples:[ () ]
+           ~review_pending:[ Locale.ru ]
+           [ Locale.en, render ])
+       |> Result.is_error
+       : bool)];
+  [%expect {|
+    (ky ru)
+    (((reviewed ky) (reviewed ru)) ())
+    true
+    |}]
+;;
