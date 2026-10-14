@@ -1,0 +1,28 @@
+; Examples are built with the rest of the project (and so in CI) and their output is
+; checked by the runtest alias; they are not installed.
+
+(executables
+ (names sign_in_by_email smtp_with_starttls)
+ (libraries otp-mail otp-mail.testing core core_unix.command_unix async)
+ (preprocess
+  (pps ppx_jane)))
+
+(rule
+ (alias runtest)
+ (action
+  (progn
+   (with-stdout-to
+    sign_in_by_email.output
+    (run %{exe:sign_in_by_email.exe}))
+   (diff sign_in_by_email.expected sign_in_by_email.output))))
+
+(rule
+ (alias runtest)
+ (deps
+  (glob_files ../test/certs/*))
+ (action
+  (progn
+   (with-stdout-to
+    smtp_with_starttls.output
+    (run %{exe:smtp_with_starttls.exe} -certs ../test/certs))
+   (diff smtp_with_starttls.expected smtp_with_starttls.output))))
