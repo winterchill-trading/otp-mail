@@ -236,6 +236,93 @@ let pt =
   }
 ;;
 
+(* Russian numerals choose among three noun forms: 1, 21, 31 ... take [one]; 2-4, 22-24
+   ... take [few]; everything else, 11-14 included, takes [many]. *)
+let plural_ru n ~one ~few ~many =
+  let n10 = n mod 10
+  and n100 = n mod 100 in
+  if n10 = 1 && n100 <> 11
+  then one
+  else if n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)
+  then few
+  else many
+;;
+
+let ru =
+  { heading =
+      (fun p ->
+        match p.purpose with
+        | Sign_in -> sprintf "Ваш код для входа в %s" p.service_name
+        | Passcode_reset -> sprintf "Ваш код для сброса код-пароля в %s" p.service_name
+        | Payment { amount; payee } ->
+          sprintf "Подтвердите платёж %s получателю %s" amount payee)
+  ; intro =
+      (fun p ->
+        match p.purpose with
+        | Sign_in -> "Ваш код для входа:"
+        | Passcode_reset -> "Используйте этот код, чтобы сбросить код-пароль:"
+        | Payment { amount; payee } ->
+          sprintf "Код для подтверждения платежа %s получателю %s:" amount payee)
+  ; expiry =
+      (fun n ->
+        sprintf
+          "Код действует %d %s."
+          n
+          (plural_ru n ~one:"минуту" ~few:"минуты" ~many:"минут"))
+  ; ignore =
+      (fun p ->
+        match p.purpose with
+        | Sign_in ->
+          "Если вы не пытались войти, просто не обращайте внимания на это письмо: \
+           возможно, кто-то ошибся адресом."
+        | Passcode_reset ->
+          "Если вы не запрашивали сброс код-пароля, не используйте код и свяжитесь с \
+           нами."
+        | Payment _ -> "Вводите его, только если этот платёж совершаете вы сами.")
+  ; never_share =
+      (fun p ->
+        sprintf
+          "Никому не сообщайте этот код. Сотрудники %s никогда не просят его назвать."
+          p.service_name)
+  }
+;;
+
+(* Kyrgyz nouns stay singular after a numeral, so no plural rule is needed. *)
+let ky =
+  { heading =
+      (fun p ->
+        match p.purpose with
+        | Sign_in -> sprintf "%s кызматына кирүү кодуңуз" p.service_name
+        | Passcode_reset ->
+          sprintf "%s кызматындагы код-сырсөздү калыбына келтирүү кодуңуз" p.service_name
+        | Payment { amount; payee } ->
+          sprintf "%s алуучусуна %s төлөмүн ырастаңыз" payee amount)
+  ; intro =
+      (fun p ->
+        match p.purpose with
+        | Sign_in -> "Кирүү кодуңуз:"
+        | Passcode_reset -> "Код-сырсөздү калыбына келтирүү үчүн бул кодду колдонуңуз:"
+        | Payment { amount; payee } ->
+          sprintf "%s алуучусуна %s төлөмүн ырастоо коду:" payee amount)
+  ; expiry = (fun n -> sprintf "Код %d мүнөт жарактуу." n)
+  ; ignore =
+      (fun p ->
+        match p.purpose with
+        | Sign_in ->
+          "Эгер сиз кирүүгө аракет кылбасаңыз, бул катка көңүл бурбасаңыз болот: балким, \
+           кимдир бирөө дарегиңизди жаңылыш терген."
+        | Passcode_reset ->
+          "Эгер код-сырсөздү калыбына келтирүүнү сурабасаңыз, кодду колдонбоңуз жана биз \
+           менен байланышыңыз."
+        | Payment _ -> "Бул төлөмдү өзүңүз жасап жатсаңыз гана киргизиңиз.")
+  ; never_share =
+      (fun p ->
+        sprintf
+          "Бул кодду эч кимге айтпаңыз. %s кызматкерлери аны эч качан сурабайт."
+          p.service_name)
+  }
+;;
+
 let render words p =
   let n = minutes p.expires_in in
   let esc = Template.Html.escape in
@@ -288,6 +375,7 @@ let samples =
 let template =
   Template.create
     ~name:"one-time-code"
+    ~review_pending:Template.Locale.[ ru; ky ]
     ~samples
     ~must_mention:(fun p ->
       p.code
@@ -302,5 +390,7 @@ let template =
     ; Template.Locale.es, render es
     ; Template.Locale.it, render it
     ; Template.Locale.pt, render pt
+    ; Template.Locale.ru, render ru
+    ; Template.Locale.ky, render ky
     ]
 ;;

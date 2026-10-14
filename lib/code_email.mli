@@ -1,5 +1,7 @@
 (** A ready-made email that delivers a one-time code, in English, German, French, Spanish,
-    Italian and Portuguese (European).
+    Italian, Portuguese (European), Russian and Kyrgyz. The Russian and Kyrgyz wording
+    awaits a native speaker's review and is marked so in the template
+    ({!Template.review_pending}).
 
     The code is never put in the subject, where lock screens and notification previews
     would show it. A payment confirmation names the amount and the payee, as PSD2 RTS
