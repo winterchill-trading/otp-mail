@@ -11,9 +11,8 @@ val create : local:string -> domain:string -> t Or_error.t
 (** [of_string s] reads [<local@domain>] or [local@domain]. *)
 val of_string : string -> t Or_error.t
 
-(** [generate ~random ~domain] uses 16 bytes from [random] (hex encoded) as the left half.
-    [random n] must return [n] bytes; see {!Otp.Rng}. *)
-val generate : random:(int -> string) -> domain:string -> t
+(** [generate ~rng ~domain] uses 16 random bytes, hex encoded, as the left half. *)
+val generate : rng:Rng.t -> domain:string -> t
 
 (** [to_string t] is [<local@domain>]. *)
 val to_string : t -> string

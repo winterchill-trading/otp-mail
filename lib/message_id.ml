@@ -26,11 +26,7 @@ let of_string s =
   | Some (local, domain) -> create ~local ~domain
 ;;
 
-let generate ~random ~domain =
-  let local = Cryptokit.transform_string (Cryptokit.Hexa.encode ()) (random 16) in
-  Or_error.ok_exn (create ~local ~domain)
-;;
-
+let generate ~rng ~domain = Or_error.ok_exn (create ~local:(Rng.hex rng 16) ~domain)
 let to_string t = "<" ^ t ^ ">"
 let local t = fst (String.rsplit2_exn t ~on:'@')
 
