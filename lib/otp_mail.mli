@@ -1,1 +1,7 @@
-(** One-time codes and transactional email. *)
+(** One-time codes and transactional email.
+
+    {1 Modules}
+
+    - {!Mime}: transfer encodings, encoded words, header folding and an entity parser. *)
+
+module Mime = Mime
