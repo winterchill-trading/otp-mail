@@ -194,3 +194,24 @@ let%expect_test "stable digest" =
   print_endline (Bin_prot.Shape.eval_to_digest_string Locale.Stable.V1.bin_shape_t);
   [%expect {| d9a8da25d5656b016fb4dbdc2e4197fb |}]
 ;;
+
+let%expect_test "subject length counts characters, not bytes" =
+  let subject n = String.concat (List.init n ~f:(fun _ -> "ж")) in
+  let template n =
+    Template.create
+      ~name:(sprintf "cyrillic-%d" n)
+      ~samples:[ () ]
+      [ ( Template.Locale.en
+        , fun () -> { Template.Rendered.subject = subject n; text = "x"; html = None } )
+      ]
+  in
+  print_s
+    [%sexp
+      (Template.Catalogue.check [ T (template 150); T (template 151) ]
+       : Template.Catalogue.Problem.t list)];
+  [%expect
+    {|
+    (((template cyrillic-151) (locale (en))
+      (problem "subject over 150 characters")))
+    |}]
+;;
