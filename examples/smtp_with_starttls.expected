@@ -1,0 +1,26 @@
+S: 220 fake.smtp.invalid ESMTP ready
+C: EHLO localhost
+S: 250-fake.smtp.invalid
+S: 250-STARTTLS
+S: 250-AUTH PLAIN LOGIN
+S: 250 SIZE 10485760
+C: STARTTLS
+S: 220 ready to start TLS
+C: EHLO localhost
+S: 250-fake.smtp.invalid
+S: 250-AUTH PLAIN LOGIN
+S: 250 SIZE 10485760
+C: AUTH PLAIN <redacted>
+S: 235 authenticated
+C: MAIL FROM:<no-reply@bank.example>
+S: 250 sender ok
+C: RCPT TO:<zoe@example.org>
+S: 250 recipient ok
+C: DATA
+S: 354 end data with <CR><LF>.<CR><LF>
+C: <message data>
+S: 250 queued as FAKE1
+C: QUIT
+S: 221 bye
+accepted
+server got a message for zoe@example.org over TLS
