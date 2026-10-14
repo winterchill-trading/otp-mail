@@ -233,3 +233,39 @@ let%expect_test "stable digests" =
     3774c94fa249498018d1e3d1970556e7
     |}]
 ;;
+
+let%expect_test "waits can be switched off for tests" =
+  let zero = Time_ns.Span.zero in
+  let show r = print_s [%sexp (Result.map r ~f:(fun _ -> ()) : unit Or_error.t)] in
+  show (Otp.Config.create ~resend_interval:zero ~lockout_base:zero ~lockout_max:zero ());
+  show (Otp.Config.create ~resend_interval:(Time_ns.Span.of_sec (-1.)) ());
+  [%expect
+    {|
+    (Ok ())
+    (Error ("must not be negative" resend_interval (span -1s)))
+    |}];
+  let config =
+    Otp.Config.create ~resend_interval:zero ~lockout_base:zero ~lockout_max:zero ()
+    |> Or_error.ok_exn
+  in
+  let rng = Rng.of_seed "otp-tests-seed-0001" in
+  let issue record =
+    match Otp.issue config ~key ~rng ~now:t0 ~purpose:Sign_in record with
+    | Ok (record, _) -> record, "ok"
+    | Error e -> record, Sexp.to_string [%sexp (e : Otp.Issue_error.t)]
+  in
+  (* Two codes in the same instant, then five wrong guesses: the lockout ends at once. *)
+  let record, first = issue (fresh Sign_in) in
+  let record, second = issue record in
+  let record =
+    List.fold (List.range 0 5) ~init:record ~f:(fun record _ ->
+      fst (Otp.verify config ~keys:[ key ] ~now:t0 ~purpose:Sign_in ~code:"000000" record))
+  in
+  let _, third = issue record in
+  print_s [%sexp (first : string), (second : string), (third : string)];
+  print_s [%sexp (record.lockouts : int)];
+  [%expect {|
+    (ok ok ok)
+    1
+    |}]
+;;
