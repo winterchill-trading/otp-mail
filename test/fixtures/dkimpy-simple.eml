@@ -1,0 +1,36 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=bank.example;
+ i=@bank.example; q=dns/txt; s=sel; t=1791957413; h=from : to : subject
+ : date; bh=PAtaJqL1D/brtfrBFUFS1hrv3KR6DQvEPUBszZKBtTg=;
+ b=OxKjiQtMkVb8YvLmDrOSOki66EC9DnFzS4lyDhZXy8TWRKZaEuuIRqsC5qw6a9jfSiGGh
+ WI2Fphv1a7uKpYFlUGiszfg9ffKksW5XyIjUj0oRDk9tjNgJnlT6nVACFemNPKoKAFTXtd0
+ Ir78Njq5VfEgJzu9+cA3a9zHnUONKw5AFs7/BOK8QKu9gRzazuUasxaNoEer8WkOkh/IxJ3
+ XanyIfLBibrCLmUVUwyh1/bzHG4n/g+0IM+RB+L0rdtjzHtmKZ1gu3nMEfI4RPGsx9wHfD+
+ oVjNewmGmOplYMRtC+T8ukStx0+3bL9uvxfKE+W4DWWdLgRtEA553cE/lkIQ==
+Date: Wed, 14 Oct 2026 09:30:00 +0000
+From: =?UTF-8?B?Wm/DqyBCYW5r?= <no-reply@bank.example>
+To: =?UTF-8?B?Wm/DqyBCYW5r?= <z@example.org>
+Cc: =?UTF-8?B?Wm/DqyBCYW5r?= <c@example.org>
+Subject: =?UTF-8?B?R3LDvMOfZSDigJQgeW91ciBjb2RlICAgaXMgNDgyOTEz?=
+Message-ID: <x@bank.example>
+MIME-Version: 1.0
+List-Unsubscribe: <mailto:u@bank.example>
+Content-Type: multipart/alternative;
+ boundary="=_a6bf911b2c21cba0a515ebb2ee7f0bbf"
+
+--=_a6bf911b2c21cba0a515ebb2ee7f0bbf
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hi  there=20
+
+Code: 482913
+
+
+
+--=_a6bf911b2c21cba0a515ebb2ee7f0bbf
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<p>Gr=C3=BC=C3=9Fe</p>
+
+--=_a6bf911b2c21cba0a515ebb2ee7f0bbf--
