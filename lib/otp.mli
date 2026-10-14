@@ -102,7 +102,11 @@ module Config : sig
     }
   [@@deriving sexp_of, compare, equal]
 
-  (** [create ()] checks the bounds above and that every span is positive. *)
+  (** [create ()] checks the bounds above, that [ttl] is positive and that the other spans
+      are not negative. Zero turns a wait off: [~resend_interval:zero] allows a new code
+      at once and [~lockout_base:zero] makes lockouts end as they start (only the lockout
+      count remains). Both are meant for tests and local demos; production settings should
+      keep the defaults' order of magnitude. *)
   val create
     :  ?digits:int
     -> ?ttl:Time_ns.Span.t

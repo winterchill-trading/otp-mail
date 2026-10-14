@@ -111,6 +111,12 @@ module Config = struct
       then Ok ()
       else Or_error.error_s [%message "must be positive" name (span : Time_ns.Span.t)]
     in
+    (* Zero switches a wait off, which tests and local demos want; negative is a typo. *)
+    let non_negative name span =
+      if Time_ns.Span.(span >= zero)
+      then Ok ()
+      else Or_error.error_s [%message "must not be negative" name (span : Time_ns.Span.t)]
+    in
     let open Or_error.Let_syntax in
     let%bind () =
       if digits < 4 || digits > 10
@@ -125,9 +131,9 @@ module Config = struct
       else Ok ()
     in
     let%bind () = positive "ttl" ttl in
-    let%bind () = positive "lockout_base" lockout_base in
-    let%bind () = positive "lockout_max" lockout_max in
-    let%map () = positive "resend_interval" resend_interval in
+    let%bind () = non_negative "lockout_base" lockout_base in
+    let%bind () = non_negative "lockout_max" lockout_max in
+    let%map () = non_negative "resend_interval" resend_interval in
     { digits; ttl; max_attempts; lockout_base; lockout_max; resend_interval }
   ;;
 
