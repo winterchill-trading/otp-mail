@@ -1,8 +1,16 @@
 ; Examples are built with the rest of the project (and so in CI) and their output is
 ; checked by the runtest alias; they are not installed.
 
+(library
+ (name doc_example)
+ (modules doc_example)
+ (libraries otp-mail core async)
+ (preprocess
+  (pps ppx_jane)))
+
 (executables
  (names sign_in_by_email smtp_with_starttls)
+ (modules sign_in_by_email smtp_with_starttls)
  (libraries otp-mail otp-mail.testing core core_unix.command_unix async)
  (preprocess
   (pps ppx_jane)))
