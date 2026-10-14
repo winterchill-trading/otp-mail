@@ -5,3 +5,5 @@
     - {!Mime}: transfer encodings, encoded words, header folding and an entity parser. *)
 
 module Mime = Mime
+module Address = Address
+module Mailbox = Mailbox
