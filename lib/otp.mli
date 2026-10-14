@@ -27,6 +27,7 @@ open! Core
 
 module Purpose : sig
   module Kind : sig
+    (** A purpose without its SCA binding: what records are keyed by. *)
     type t =
       | Sign_in
       | Passcode_reset

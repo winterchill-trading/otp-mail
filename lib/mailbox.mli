@@ -4,7 +4,7 @@
 open! Core
 
 type t = private
-  { display_name : string option
+  { display_name : string option (** UTF-8, without control characters *)
   ; address : Address.t
   }
 [@@deriving sexp, compare, equal, hash]
