@@ -18,3 +18,4 @@ module Template = Template
 module Code_email = Code_email
 module Mailer = Mailer
 module Simulated_inbox = Simulated_inbox
+module Smtp = Smtp
