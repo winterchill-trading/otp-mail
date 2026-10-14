@@ -1,9 +1,10 @@
 (library
  (name otp_mail_test)
- (libraries otp-mail core async)
+ (libraries otp-mail otp-mail.testing core async)
  (inline_tests
   (deps
-   (glob_files fixtures/*))
+   (glob_files fixtures/*)
+   (glob_files certs/*))
   (flags
    (:standard -source-tree-root .)))
  (preprocess
