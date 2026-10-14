@@ -17,3 +17,4 @@ module Otp_service = Otp_service
 module Template = Template
 module Code_email = Code_email
 module Mailer = Mailer
+module Simulated_inbox = Simulated_inbox
