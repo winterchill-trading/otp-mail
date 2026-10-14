@@ -11,10 +11,10 @@ tests use an in-memory inbox or a local fake SMTP server.
 
 | Path | Holds |
 | --- | --- |
-| `lib/` | The `otp-mail` library (module `Otp_mail`): `Otp`, `Otp_store`, `Otp_service`, `Template`, `Code_email`, `Address`, `Mailbox`, `Message`, `Mime`, `Dkim`, `Mailer`, `Simulated_inbox`, `Smtp`, `Webhook_sink` |
+| `lib/` | The `otp-mail` library (module `Otp_mail`): `Otp`, `Otp_store`, `Otp_service`, `Template`, `Code_email`, `Address`, `Mailbox`, `Message`, `Mime`, `Dkim`, `Mailer`, `Simulated_inbox`, `Smtp`, `Http_api`, `Webhook_sink` |
 | `bin/` | `otp-mail` CLI: offline tools (address check, render, DKIM record and verify, template check) |
 | `testing/` | `otp-mail.testing` library: `Fake_smtp`, a local SMTP server for tests |
-| `test/` | Inline expect tests, properties, the cram test `cli.t/`, and `fixtures/` and `certs/` (test data only) |
+| `test/` | Inline expect tests, properties, the cram test `cli.t/`, and `fixtures/` and `certs/` (test data only). `test_http_api.ml` runs its own loopback HTTP server; `test_otp_challenge.ml` and `test_otp_service_indexed.ml` cover verification by challenge id |
 | `examples/` | Two programs whose output is diffed against `.expected` files in `runtest`, and `doc_example.ml`, a library kept in step with `lib/otp_mail.mli` |
 | `docs/` | `api-notes.md`: protocol notes (SMTP, TLS, MIME, DKIM, SCA) and environment quirks |
 | `.github/` | `workflows/ci.yml` |
@@ -53,7 +53,8 @@ Standalone (outside the workspace): `opam install . --deps-only --with-test`, th
 ## Dependencies and dependents
 
 - No sibling repository is built against. Dependencies are public packages: core, async,
-  async_ssl, cryptokit (1.16 or later), ppx_jane; core_unix for the CLI and tests.
+  async_ssl, cryptokit (1.16 or later), yojson (2.2 up to 4.0), ppx_jane; core_unix for
+  the CLI and tests.
 - Dependents in the workspace: none at present.
 - CI pins nothing: `ox-setup` runs without a `pins:` block.
 
@@ -74,6 +75,11 @@ then the `obj-magic` reusable workflow from the same repository. To check a run,
 - After STARTTLS the client sends EHLO again and must not fall back to plain text when TLS is required.
 - An expect block whose output contains `|}` ends the quoted string early; reorder the test input.
 - Failing `runtest` then `@otp-mail/fmt --auto-promote` leaves nothing to promote. Promote first.
+- `Message_id.to_string` already includes the angle brackets; do not add another pair.
+- Tests that set environment variables use `Core_unix.putenv` with
+  `[@alert "-unsafe_multidomain"]`; pick variable names no other test reads.
+- `Template.Catalogue.check` counts subject length in characters (UTF-8 aware), not
+  bytes.
 - A `?time_source` argument with a default of `Time_source.wall_clock ()` closes the parameter's
   type. Take it as an option and match inside.
 
