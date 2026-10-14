@@ -52,6 +52,10 @@ First release.
   `Template.review_pending` and `Template.Catalogue.review_pending` to mark locales whose
   wording awaits a native speaker's review.
 - `Code_email`: Russian and Kyrgyz wording (Cyrillic), marked as awaiting review.
+- `Http_api`: a `Mailer.S` for email APIs that take JSON over HTTPS, with a
+  configurable endpoint, a bearer token from the environment, an `Idempotency-Key`
+  header, pluggable request and answer shapes (`Shape.fields`, `Shape.raw_mime`), and
+  status mapping onto `Mailer.Send_error`. Adds a dependency on yojson.
 
 ### Fixed
 
