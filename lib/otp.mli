@@ -228,3 +228,53 @@ val verify
   -> code:string
   -> Record.t
   -> Record.t * Verify_result.t
+
+(** The outcome of {!verify_challenge}: {!Rejection.t} with the number of attempts left on
+    a wrong code. *)
+module Attempt : sig
+  type t =
+    | Verified
+    | No_challenge
+    (** no outstanding challenge with this id: never issued, replaced by a newer code,
+        already used, or its key retired *)
+    | Expired
+    | Wrong_code of { attempts_left : int }
+    (** wrong digits, or a code for another purpose or binding; [attempts_left] more
+        failures are allowed before a lockout (at least 1) *)
+    | Locked_out of { until : Time_ns.t }
+    (** this failure started a lockout; the challenge is kept *)
+    | Locked of { until : Time_ns.t } (** a lockout was already running *)
+  [@@deriving sexp, compare, equal]
+
+  (** The same outcome without the attempt count, as {!verify} reports it. *)
+  val to_verify_result : t -> Verify_result.t
+end
+
+(** [attempts_left config record] is how many wrong codes the subject may still enter
+    before a lockout: [max_attempts] for a fresh record. Show it with a newly issued code
+    if the interface counts attempts down. *)
+val attempts_left : Config.t -> Record.t -> int
+
+(** [verify_challenge config ~keys ~now ~challenge_id ~purpose ~code record] checks [code]
+    against the outstanding challenge, which must have id [challenge_id]: a client that
+    holds an older challenge id gets [No_challenge] and nothing is counted. It otherwise
+    follows {!verify}, with two differences:
+
+    - a wrong code reports how many attempts are left. The limit is {!Config.max_attempts}
+      per code, and failures carry over to a re-sent code, so asking for a new code never
+      adds attempts;
+    - a lockout keeps the challenge, so its id still resolves (to [Locked] while the
+      lockout runs) and the same code may be tried again after it, until the code expires.
+      Lockouts double each time, which bounds the guesses one code can take.
+
+    Running a lockout is checked before expiry, so a locked subject hears [Locked] even
+    for an expired code. *)
+val verify_challenge
+  :  Config.t
+  -> keys:Key.t list
+  -> now:Time_ns.t
+  -> challenge_id:string
+  -> purpose:Purpose.t
+  -> code:string
+  -> Record.t
+  -> Record.t * Attempt.t

@@ -345,3 +345,85 @@ let verify (config : Config.t) ~keys ~now ~purpose ~code (record : Record.t) =
               , Rejected (Locked_out { until }) ))
             else { record with failures }, Rejected Wrong_code)))
 ;;
+
+module Attempt = struct
+  type t =
+    | Verified
+    | No_challenge
+    | Expired
+    | Wrong_code of { attempts_left : int }
+    | Locked_out of { until : Time_ns.Alternate_sexp.t }
+    | Locked of { until : Time_ns.Alternate_sexp.t }
+  [@@deriving sexp, compare, equal]
+
+  let to_verify_result : t -> Verify_result.t = function
+    | Verified -> Verified
+    | No_challenge -> Rejected No_challenge
+    | Expired -> Rejected Expired
+    | Wrong_code _ -> Rejected Wrong_code
+    | Locked_out { until } -> Rejected (Locked_out { until })
+    | Locked { until } -> Rejected (Locked { until })
+  ;;
+end
+
+let attempts_left (config : Config.t) (record : Record.t) =
+  Int.max 0 (config.max_attempts - record.failures)
+;;
+
+let verify_challenge
+  (config : Config.t)
+  ~keys
+  ~now
+  ~challenge_id
+  ~purpose
+  ~code
+  (record : Record.t)
+  =
+  match record.challenge with
+  | None -> record, Attempt.No_challenge
+  | Some challenge when not (constant_time_equal challenge.id challenge_id) ->
+    record, No_challenge
+  | Some challenge ->
+    (match lock_active record ~now with
+     | Some until -> record, Locked { until }
+     | None ->
+       let record = clear_expired_lock record ~now in
+       if Time_ns.( >= ) now challenge.expires_at
+       then record, Expired
+       else (
+         match List.find keys ~f:(fun k -> String.equal (Key.id k) challenge.key_id) with
+         | None -> { record with challenge = None }, Expired
+         | Some key ->
+           let actual =
+             hash_code key ~challenge_id:challenge.id ~purpose ~code:(normalise_code code)
+           in
+           if constant_time_equal challenge.code_hash actual
+           then
+             ( { record with
+                 challenge = None
+               ; failures = 0
+               ; lockouts = 0
+               ; locked_until = None
+               }
+             , Verified )
+           else (
+             let failures = record.failures + 1 in
+             if failures >= config.max_attempts
+             then (
+               let until =
+                 Time_ns.add
+                   now
+                   (Config.lockout_duration config ~lockouts:record.lockouts)
+               in
+               (* Unlike [verify], the challenge stays: its id still resolves, and the
+                  same code can be tried again once the lockout is over. *)
+               ( { record with
+                   failures = 0
+                 ; lockouts = record.lockouts + 1
+                 ; locked_until = Some until
+                 }
+               , Locked_out { until } ))
+             else
+               ( { record with failures }
+               , Wrong_code { attempts_left = config.max_attempts - failures } ))))
+;;
