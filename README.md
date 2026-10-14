@@ -11,15 +11,17 @@ One-time codes and transactional email for OCaml and Async.
   on conflicts.
 - `Template`, `Code_email`: typed email templates (OCaml functions per locale, no
   template language) with a catalogue check, and a ready-made code email in English,
-  German, French, Spanish, Italian and Portuguese.
+  German, French, Spanish, Italian, Portuguese, Russian and Kyrgyz (the last two await a
+  native speaker's review and are marked so in the catalogue).
 - `Address`, `Mailbox`, `Message`, `Mime`: RFC 5322 addresses and display names, MIME
   rendering (quoted-printable, base64, encoded words, header folding,
   `multipart/alternative`) and a parser that reads messages back.
 - `Dkim`: DKIM `rsa-sha256` signing with simple or relaxed canonicalization, plus a
   verifier for tests.
 - `Mailer`: one sending interface with delivery ids, delivery events and idempotency
-  keys; `Simulated_inbox` (in memory, queryable) and `Smtp` (STARTTLS or implicit TLS,
-  AUTH PLAIN/LOGIN) implement it; `Webhook_sink` turns signed webhook deliveries from
+  keys; `Simulated_inbox` (in memory, queryable), `Smtp` (STARTTLS or implicit TLS,
+  AUTH PLAIN/LOGIN) and `Http_api` (JSON over HTTPS with a bearer token, pluggable request
+  and answer shapes) implement it; `Webhook_sink` turns signed webhook deliveries from
   API-based mailers into the same events.
 - `otp-mail.testing`: `Fake_smtp`, a local SMTP server for tests.
 - `otp-mail` CLI: offline tools (check an address, render the code email, DKIM key
@@ -92,12 +94,28 @@ Complete, runnable programs (their output is checked in CI):
 | A code verifies only for its purpose; SCA codes only for the same binding (amount and payee) | | `Otp.Purpose` |
 | Accepted once, until it expires | 10 minutes | `Otp.Config.ttl` |
 | Consecutive failures per subject and kind, kept across re-sent codes; the limit starts a lockout | 5 | `Otp.Config.max_attempts` |
-| Lockouts double, up to a ceiling; success clears them | 1 min to 1 h | `Otp.Config.lockout_*` |
-| Minimum time between two codes | 30 s | `Otp.Config.resend_interval` |
+| Lockouts double, up to a ceiling; success clears them | 1 min to 1 h (0 allowed, for tests) | `Otp.Config.lockout_*` |
+| Minimum time between two codes | 30 s (0 allowed, for tests) | `Otp.Config.resend_interval` |
 | Constant-time comparison; codes and keys print as `<redacted>` | | `Otp.verify` |
 
 Rejections carry a reason (`Wrong_code`, `Expired`, `Locked_out`, ...) for audit
 records; show the user one message for all of them.
+
+### Verifying by challenge id
+
+`Otp.verify_challenge` (and `Otp_service.Make.verify_challenge`) checks a code against
+the challenge id the client was given when the code was issued:
+
+- a stale id (the code was re-sent, used or never existed) is `No_challenge` and counts
+  nothing;
+- a wrong code answers `Wrong_code { attempts_left }`; re-sending a code does not reset
+  the count;
+- a lockout keeps the challenge, so the id answers `Locked { until }` during it and the
+  same code can be tried after it, until it expires.
+
+With a store that implements `Otp_store.Indexed` (`find_challenge`),
+`Otp_service.Make_indexed` also offers `verify_by_challenge ~challenge_id ~code`, for
+clients that do not send the subject back.
 
 ## Storing records
 
@@ -106,6 +124,8 @@ keeps one row per (subject, kind) with the record as `Otp.Record.Stable.V1` (sex
 bin_prot) and a version column, and saves with
 `UPDATE ... WHERE version = expected_version` (or an insert when `expected_version` is
 0). `Otp_store.check (module My_store) store` runs the contract scenarios against it.
+An `Otp_store.Indexed` store adds a unique index on the outstanding challenge id;
+`Otp_store.check_indexed` covers it.
 
 ## Sending
 
@@ -113,6 +133,7 @@ bin_prot) and a version column, and saves with
 | --- | --- | --- |
 | `Simulated_inbox` | tests, demos, local development; query with `messages`, `latest`, `next` | `Sent`, then per-recipient statuses from `~outcome` |
 | `Smtp` | a submission relay (port 587 STARTTLS or 465 TLS) | `Sent`; `Failed` for recipients the relay refused |
+| `Http_api` | an email API taking JSON over HTTPS | `Sent`; `Failed` on a 4xx refusal; later statuses through `Webhook_sink` |
 | your API client + `Webhook_sink.Sink` | an email API | whatever its webhooks report, deduplicated |
 
 `Mailer.send ?idempotency_key` sends once per key (per mailer value) and answers the
@@ -136,6 +157,18 @@ same delivery id for a repeat.
 TLS certificates are verified against the roots and the host name. With `starttls` the
 client stops if the server does not offer STARTTLS, and credentials are never sent over
 plain TCP unless `allow_plaintext_auth` is set.
+
+### Email API configuration
+
+`Http_api.Config.of_env ()` reads `OTP_MAIL_HTTP_API_URL` (required; `https://`, or
+`http://` for loopback only), `OTP_MAIL_HTTP_API_TOKEN` (sent as
+`Authorization: Bearer`), `OTP_MAIL_HTTP_API_CA_FILE`,
+`OTP_MAIL_HTTP_API_TIMEOUT_SECONDS` and `OTP_MAIL_MESSAGE_ID_DOMAIN`. The body comes from
+a `Http_api.Shape.t`: `Shape.fields ()` (from, to, cc, bcc, subject, text, html,
+headers), `Shape.raw_mime ()` (the rendered, optionally DKIM-signed message in base64),
+or a record of three functions for any other layout. `send ?idempotency_key` forwards
+the key as `Idempotency-Key`. 2xx answers are accepted (the id is read from `"id"`), 408,
+429 and 5xx are temporary, other 4xx are rejections.
 
 ### DKIM
 
@@ -167,7 +200,8 @@ otp-mail check-templates
 | MIME | Quickcheck round trips for quoted-printable, base64, encoded words and header folding; `Message.of_wire (render m) = m` over generated messages; hand-written fixtures with nested multiparts, LF line breaks and ISO-8859-1 words |
 | One-time codes | expect scenarios; Quickcheck over random sessions (a code verifies only when fresh, unused and for its purpose; failures never exceed the limit; lockouts hold); chi-squared uniformity of digits; mutation-checked |
 | HMAC | RFC 4231 test case 2 |
-| Templates | the catalogue check in six locales, plus a template broken on purpose |
+| Templates | the catalogue check in eight locales, plus a template broken on purpose; Russian minute forms for 1 to 111 |
+| Email API client | a loopback HTTP server in the tests: request line and headers, both shapes, chunked and fixed-length answers, 4xx, 429, 5xx, unusable ids, garbage and a server that never answers |
 
 No test sends email anywhere: the SMTP tests talk to a server on 127.0.0.1 started by the
 test itself.
@@ -182,6 +216,10 @@ test itself.
 - No SMTPUTF8: addresses must be ASCII (display names and content may be any UTF-8).
 - `Mime.Content_type.parse` does not accept comments or RFC 2231 parameter
   continuations.
+- `Http_api` speaks HTTP/1.1 with one connection per message, and follows no redirects
+  or proxies.
+- The Russian and Kyrgyz code-email wording has not yet been reviewed by native
+  speakers (`Template.Catalogue.review_pending` lists it).
 - Idempotency keys are remembered in memory per mailer value; a service that sends from
   several processes keeps its own outbox keyed by request.
 
