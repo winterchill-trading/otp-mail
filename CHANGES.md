@@ -37,3 +37,14 @@ First release.
 - `otp-mail.testing`: `Fake_smtp`, a local SMTP server for tests.
 - `otp-mail` command line tool: `address`, `render`, `dkim-record`, `dkim-verify` and
   `check-templates`.
+- `Otp.Config.create` accepts a zero `resend_interval`, `lockout_base` and
+  `lockout_max`, so tests and demos can switch the waits off (negative spans are still
+  refused; `ttl` must still be positive).
+- `Otp.verify_challenge` and `Otp.Attempt`: verification against a given challenge id,
+  reporting the attempts left on a wrong code; a lockout keeps the challenge, so its id
+  still resolves and the code can be retried once the lockout ends. `Otp.attempts_left`
+  gives the count for a record.
+- `Otp_store.Indexed` (`find_challenge`), implemented by `Otp_store.Memory`, and
+  `Otp_store.check_indexed`.
+- `Otp_service.Make.verify_challenge`, and `Otp_service.Make_indexed` with
+  `verify_by_challenge` for clients that send back only the challenge id and the code.
