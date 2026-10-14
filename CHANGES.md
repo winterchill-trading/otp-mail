@@ -56,6 +56,10 @@ First release.
   configurable endpoint, a bearer token from the environment, an `Idempotency-Key`
   header, pluggable request and answer shapes (`Shape.fields`, `Shape.raw_mime`), and
   status mapping onto `Mailer.Send_error`. Adds a dependency on yojson.
+- `Otp_store.Indexed (Store)`: an adapter functor that gives a plain `Otp_store.S` the
+  `find_challenge` lookup by keeping an in-memory index of outstanding challenge ids, so
+  `Otp_service.Make_indexed` works over it. Single-process: it sees only challenges this
+  process saved or loaded, and confirms every hit against the stored record.
 
 ### Fixed
 
