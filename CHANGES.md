@@ -48,3 +48,12 @@ First release.
   `Otp_store.check_indexed`.
 - `Otp_service.Make.verify_challenge`, and `Otp_service.Make_indexed` with
   `verify_by_challenge` for clients that send back only the challenge id and the code.
+- `Template.Locale.ru` and `Template.Locale.ky`; `Template.create ?review_pending`,
+  `Template.review_pending` and `Template.Catalogue.review_pending` to mark locales whose
+  wording awaits a native speaker's review.
+- `Code_email`: Russian and Kyrgyz wording (Cyrillic), marked as awaiting review.
+
+### Fixed
+
+- `Template.Catalogue.check` measures the 150-character subject limit in characters, not
+  bytes.
