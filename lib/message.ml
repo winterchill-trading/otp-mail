@@ -124,7 +124,7 @@ let rfc5322_date time =
   let parts = Time_ns.Ofday.to_parts ofday in
   sprintf
     "%s, %d %s %d %02d:%02d:%02d +0000"
-    (Day_of_week.to_string (Date.day_of_week date))
+    (String.capitalize (String.lowercase (Day_of_week.to_string (Date.day_of_week date))))
     (Date.day date)
     (Month.to_string (Date.month date))
     (Date.year date)

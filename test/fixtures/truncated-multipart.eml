@@ -1,0 +1,9 @@
+From: a@example.org
+To: b@example.org
+Subject: cut
+Content-Type: multipart/alternative; boundary=b
+
+--b
+Content-Type: text/plain
+
+hello

@@ -1,0 +1,40 @@
+Return-Path: <bounce@mail.example>
+Received: from mx.example (mx.example [192.0.2.10])
+	by inbound.example with ESMTPS id abc123
+	for <zoe@example.org>; Wed, 14 Oct 2026 09:30:01 +0000
+From: =?iso-8859-1?q?Banque_Exemple?= <no-reply@bank.example>
+To: =?UTF-8?B?Wm/Dqw==?= <zoe@example.org>, "Doe, John" <john@example.org>
+Subject: =?iso-8859-1?q?Votre_code_de_v=E9rification?=
+Date: Wed, 14 Oct 2026 09:30:00 +0000
+Message-ID: <0f3c@bank.example>
+MIME-Version: 1.0
+List-Unsubscribe: <mailto:unsubscribe@bank.example>
+Content-Type: multipart/mixed; boundary="outer"
+
+This is a multi-part message in MIME format.
+--outer
+Content-Type: multipart/alternative;
+ boundary="inner"
+
+--inner
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Bonjour Zo=C3=AB,
+Votre code: 482913 (valable 10=
+ minutes)
+--inner
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+PHA+Qm9uam91ciBab8OrLDwvcD4KPHA+Vm90cmUgY29kZTogPGI+NDgyOTEzPC9iPjwvcD4K
+--inner--
+
+--outer
+Content-Type: application/pdf; name="notice.pdf"
+Content-Disposition: attachment; filename="notice.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQK
+--outer--
+epilogue is ignored

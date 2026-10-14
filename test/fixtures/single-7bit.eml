@@ -1,0 +1,7 @@
+From: alerts@bank.example
+To: user@example.org
+Subject: Plain ASCII notice
+X-Entity-Ref-ID: 7781
+
+Line one
+Line two
