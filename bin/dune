@@ -1,0 +1,7 @@
+(executable
+ (name otp_mail_cli)
+ (public_name otp-mail)
+ (package otp-mail)
+ (libraries otp-mail core core_unix.command_unix)
+ (preprocess
+  (pps ppx_jane)))
