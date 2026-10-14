@@ -207,13 +207,17 @@ module Catalogue = struct
     go 0 []
   ;;
 
+  (* Characters, not bytes: a Cyrillic or Greek subject takes two bytes a letter. UTF-8
+     continuation bytes (10xxxxxx) do not start a character. *)
+  let characters s = String.count s ~f:(fun c -> Char.to_int c land 0xC0 <> 0x80)
+
   let check_rendering ~mention (r : Rendered.t) =
     List.concat
       [ (if String.is_empty (String.strip r.subject) then [ "empty subject" ] else [])
       ; (if String.exists r.subject ~f:(fun c -> Char.equal c '\n' || Char.equal c '\r')
          then [ "line break in subject" ]
          else [])
-      ; (if String.length r.subject > 150 then [ "subject over 150 characters" ] else [])
+      ; (if characters r.subject > 150 then [ "subject over 150 characters" ] else [])
       ; (if String.is_empty (String.strip r.text) then [ "empty text body" ] else [])
       ; List.filter_map mention ~f:(fun m ->
           Option.some_if
