@@ -127,6 +127,22 @@ bin_prot) and a version column, and saves with
 An `Otp_store.Indexed` store adds a unique index on the outstanding challenge id;
 `Otp_store.check_indexed` covers it.
 
+A store without that column can still offer verification by challenge id in a single
+process. `Otp_store.Indexed (My_store)` wraps it and keeps an in-memory map from
+outstanding challenge ids to subjects:
+
+```ocaml
+module Store = Otp_store.Indexed (My_store)
+module Service = Otp_service.Make_indexed (Store)
+
+let service = Service.create ~config ~rng ~time_source ~key (Store.create my_store)
+```
+
+The map learns a challenge when this process saves or loads its record, so challenges
+issued by another instance, or before a restart, are not found by id (verification by
+subject still works). Each hit is checked against the stored record. Run several
+instances only with a store that indexes the challenge id itself.
+
 ## Sending
 
 | Mailer | Use | Events |
