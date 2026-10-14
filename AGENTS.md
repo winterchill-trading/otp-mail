@@ -82,6 +82,10 @@ then the `obj-magic` reusable workflow from the same repository. To check a run,
   bytes.
 - A `?time_source` argument with a default of `Time_source.wall_clock ()` closes the parameter's
   type. Take it as an option and match inside.
+- `Otp_store.Indexed` is both a module type and, in the module namespace, the adapter
+  functor `Otp_store.Indexed (Store)`. The adapter's index is per process; tests that
+  run two services over one store need different `Rng` seeds, or both issue the same
+  challenge id.
 
 ## Where to read more
 
