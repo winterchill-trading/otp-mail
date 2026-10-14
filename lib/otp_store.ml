@@ -17,6 +17,15 @@ module type S = sig
     -> [ `Saved | `Conflict ] Deferred.t
 end
 
+module type Indexed = sig
+  include S
+
+  val find_challenge
+    :  t
+    -> challenge_id:string
+    -> (string * Otp.Purpose.Kind.t) option Deferred.t
+end
+
 module Key = struct
   type t = string * Otp.Purpose.Kind.t [@@deriving compare, hash, sexp_of]
 end
@@ -37,6 +46,16 @@ module Memory = struct
       Hashtbl.set t ~key ~data:record;
       return `Saved)
     else return `Conflict
+  ;;
+
+  (* A scan: fine for tests and demos. A database store indexes the challenge id. *)
+  let find_challenge t ~challenge_id =
+    Hashtbl.data t
+    |> List.find_map ~f:(fun (r : Otp.Record.t) ->
+      match r.challenge with
+      | Some c when String.equal c.id challenge_id -> Some (r.subject, r.kind)
+      | _ -> None)
+    |> return
   ;;
 
   let records t =
@@ -103,4 +122,63 @@ let check (type a) (module Store : S with type t = a) (store : a) =
     expect "subjects are kept apart" (Option.is_none loaded)
   in
   return ()
+;;
+
+let check_indexed (type a) (module Store : Indexed with type t = a) (store : a) =
+  let open Deferred.Or_error.Let_syntax in
+  let%bind () = check (module Store) store in
+  let expect label ok =
+    if ok
+    then return ()
+    else Deferred.Or_error.error_s [%message "store check failed" label]
+  in
+  let subject = "otp-store-check-3" in
+  let at = Time_ns.of_string_with_utc_offset "2026-01-01 00:00:00Z" in
+  let challenge (id : string) : Otp.Challenge.t =
+    { id
+    ; key_id = "k1"
+    ; code_hash = "00"
+    ; purpose = Sign_in
+    ; issued_at = at
+    ; expires_at = Time_ns.add at Time_ns.Span.minute
+    }
+  in
+  let id1 = "otp-store-check-challenge-1" in
+  let id2 = "otp-store-check-challenge-2" in
+  let%bind () =
+    let%bind.Deferred found = Store.find_challenge store ~challenge_id:id1 in
+    expect "an unknown challenge id finds nothing" (Option.is_none found)
+  in
+  let v1 =
+    { (Otp.Record.empty ~subject ~kind:Sign_in) with
+      version = 1
+    ; challenge = Some (challenge id1)
+    }
+  in
+  let%bind () =
+    let%bind.Deferred r = Store.save store v1 ~expected_version:0 in
+    expect "the record saves" (Poly.equal r `Saved)
+  in
+  let%bind () =
+    let%bind.Deferred found = Store.find_challenge store ~challenge_id:id1 in
+    expect
+      "a saved challenge id finds its subject and kind"
+      ([%equal: (string * Otp.Purpose.Kind.t) option] found (Some (subject, Sign_in)))
+  in
+  let v2 = { v1 with version = 2; challenge = Some (challenge id2) } in
+  let%bind () =
+    let%bind.Deferred r = Store.save store v2 ~expected_version:1 in
+    expect "the replacement saves" (Poly.equal r `Saved)
+  in
+  let%bind () =
+    let%bind.Deferred found = Store.find_challenge store ~challenge_id:id1 in
+    expect "a replaced challenge id finds nothing" (Option.is_none found)
+  in
+  let v3 = { v2 with version = 3; challenge = None } in
+  let%bind () =
+    let%bind.Deferred r = Store.save store v3 ~expected_version:2 in
+    expect "the cleared record saves" (Poly.equal r `Saved)
+  in
+  let%bind.Deferred found = Store.find_challenge store ~challenge_id:id2 in
+  expect "a used challenge id finds nothing" (Option.is_none found)
 ;;
