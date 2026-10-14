@@ -74,4 +74,33 @@ module Make (Store : Otp_store.S) = struct
       let next, result = Otp.verify t.config ~keys:t.keys ~now ~purpose ~code record in
       (if Otp.Record.equal next record then None else Some next), result)
   ;;
+
+  let verify_challenge t ~subject ~challenge_id ~purpose ~code =
+    update t ~subject ~purpose ~f:(fun record ~now ->
+      let next, result =
+        Otp.verify_challenge
+          t.config
+          ~keys:t.keys
+          ~now
+          ~challenge_id
+          ~purpose
+          ~code
+          record
+      in
+      (if Otp.Record.equal next record then None else Some next), result)
+  ;;
+end
+
+module Make_indexed (Store : Otp_store.Indexed) = struct
+  include Make (Store)
+
+  let store t = t.store
+
+  let verify_by_challenge t ~challenge_id ~(purpose : Otp.Purpose.t) ~code =
+    match%bind Store.find_challenge (store t) ~challenge_id with
+    | Some (subject, kind) when Otp.Purpose.Kind.equal kind (Otp.Purpose.kind purpose) ->
+      let%map attempt = verify_challenge t ~subject ~challenge_id ~purpose ~code in
+      Some subject, attempt
+    | Some _ | None -> return (None, Otp.Attempt.No_challenge)
+  ;;
 end

@@ -34,4 +34,32 @@ module Make (Store : Otp_store.S) : sig
     -> purpose:Otp.Purpose.t
     -> code:string
     -> Otp.Verify_result.t Deferred.t
+
+  (** [verify_challenge t ~subject ~challenge_id ~purpose ~code] is
+      {!Otp.verify_challenge} over the store: the code must belong to the outstanding
+      challenge [challenge_id], and a wrong code reports the attempts left. *)
+  val verify_challenge
+    :  t
+    -> subject:string
+    -> challenge_id:string
+    -> purpose:Otp.Purpose.t
+    -> code:string
+    -> Otp.Attempt.t Deferred.t
+end
+
+(** {!Make} over a store that finds records by challenge id, for clients that send back
+    the challenge id and the code only. *)
+module Make_indexed (Store : Otp_store.Indexed) : sig
+  include module type of Make (Store)
+
+  (** [verify_by_challenge t ~challenge_id ~purpose ~code] finds the subject of the
+      outstanding challenge [challenge_id], then runs {!verify_challenge}. It answers the
+      subject when one was found, and [No_challenge] (counting nothing) when the id is
+      unknown or belongs to another purpose kind. *)
+  val verify_by_challenge
+    :  t
+    -> challenge_id:string
+    -> purpose:Otp.Purpose.t
+    -> code:string
+    -> (string option * Otp.Attempt.t) Deferred.t
 end
