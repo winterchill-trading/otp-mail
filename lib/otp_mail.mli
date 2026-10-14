@@ -10,3 +10,5 @@ module Mailbox = Mailbox
 module Message_id = Message_id
 module Message = Message
 module Dkim = Dkim
+module Rng = Rng
+module Otp = Otp
