@@ -246,3 +246,78 @@ let%expect_test "locales awaiting review" =
     true
     |}]
 ;;
+
+let%expect_test "the code email in Russian and Kyrgyz" =
+  print_s
+    [%sexp
+      (Template.Catalogue.check
+         ~required_locales:Locale.[ ru; ky ]
+         [ T Code_email.template ]
+       : Template.Catalogue.Problem.t list)
+      , (Template.review_pending Code_email.template : Locale.t list)];
+  show Locale.ru (sample Sign_in);
+  show Locale.ky (sample (Payment { amount = "KGS 1 500.00"; payee = "Асан Үсөнов" }));
+  [%expect
+    {|
+    (() (ky ru))
+    Ваш код для входа в Example Bank
+    ---
+    Ваш код для входа:
+
+        482913
+
+    Код действует 10 минут.
+    Если вы не пытались войти, просто не обращайте внимания на это письмо: возможно, кто-то ошибся адресом.
+
+    Никому не сообщайте этот код. Сотрудники Example Bank никогда не просят его назвать.
+    ---
+    <p>Ваш код для входа:</p>
+    <p style="font-size:28px;font-weight:bold;letter-spacing:6px">482913</p>
+    <p>Код действует 10 минут. Если вы не пытались войти, просто не обращайте внимания на это письмо: возможно, кто-то ошибся адресом.</p>
+    <p style="color:#555">Никому не сообщайте этот код. Сотрудники Example Bank никогда не просят его назвать.</p>
+    Асан Үсөнов алуучусуна KGS 1 500.00 төлөмүн ырастаңыз
+    ---
+    Асан Үсөнов алуучусуна KGS 1 500.00 төлөмүн ырастоо коду:
+
+        482913
+
+    Код 10 мүнөт жарактуу.
+    Бул төлөмдү өзүңүз жасап жатсаңыз гана киргизиңиз.
+
+    Бул кодду эч кимге айтпаңыз. Example Bank кызматкерлери аны эч качан сурабайт.
+    ---
+    <p>Асан Үсөнов алуучусуна KGS 1 500.00 төлөмүн ырастоо коду:</p>
+    <p style="font-size:28px;font-weight:bold;letter-spacing:6px">482913</p>
+    <p>Код 10 мүнөт жарактуу. Бул төлөмдү өзүңүз жасап жатсаңыз гана киргизиңиз.</p>
+    <p style="color:#555">Бул кодду эч кимге айтпаңыз. Example Bank кызматкерлери аны эч качан сурабайт.</p>
+    |}]
+;;
+
+let%expect_test "Russian minute forms" =
+  List.iter [ 1; 2; 4; 5; 11; 12; 14; 21; 22; 25; 101; 111 ] ~f:(fun n ->
+    let r =
+      Template.render
+        Code_email.template
+        ~locale:Locale.ru
+        { (sample Sign_in) with expires_in = Time_ns.Span.of_min (Float.of_int n) }
+    in
+    List.find_exn
+      (String.split_lines r.text)
+      ~f:(String.is_prefix ~prefix:"Код действует")
+    |> print_endline);
+  [%expect
+    {|
+    Код действует 1 минуту.
+    Код действует 2 минуты.
+    Код действует 4 минуты.
+    Код действует 5 минут.
+    Код действует 11 минут.
+    Код действует 12 минут.
+    Код действует 14 минут.
+    Код действует 21 минуту.
+    Код действует 22 минуты.
+    Код действует 25 минут.
+    Код действует 101 минуту.
+    Код действует 111 минут.
+    |}]
+;;
