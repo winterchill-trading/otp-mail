@@ -13,4 +13,5 @@ module Code_email = Code_email
 module Mailer = Mailer
 module Simulated_inbox = Simulated_inbox
 module Smtp = Smtp
+module Http_api = Http_api
 module Webhook_sink = Webhook_sink

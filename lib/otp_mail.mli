@@ -64,7 +64,8 @@
     - {!Dkim}: DKIM rsa-sha256 signing (and verification for tests).
     - {!Template}, {!Code_email}: typed templates per locale and the code email.
     - {!Mailer}: the sending interface, delivery events and idempotency keys.
-    - {!Simulated_inbox}, {!Smtp}: mailers.
+    - {!Simulated_inbox}, {!Smtp}, {!Http_api}: mailers (in memory, SMTP, and JSON over
+      HTTPS for email APIs).
     - {!Webhook_sink}: delivery events from API-based mailers.
 
     The [otp-mail.testing] library has [Fake_smtp], a local SMTP server for tests. *)
@@ -84,4 +85,5 @@ module Code_email = Code_email
 module Mailer = Mailer
 module Simulated_inbox = Simulated_inbox
 module Smtp = Smtp
+module Http_api = Http_api
 module Webhook_sink = Webhook_sink
