@@ -65,6 +65,62 @@ module Memory = struct
   ;;
 end
 
+module Indexed (Store : S) = struct
+  type t =
+    { store : Store.t
+    ; by_challenge : (string, Key.t) Hashtbl.t
+    ; by_key : (Key.t, string) Hashtbl.t
+    }
+
+  let create store =
+    { store
+    ; by_challenge = Hashtbl.create (module String)
+    ; by_key = Hashtbl.create (module Key)
+    }
+  ;;
+
+  let store t = t.store
+  let length t = Hashtbl.length t.by_challenge
+
+  (* Keeps one entry per subject and kind: the outstanding challenge, if any. *)
+  let remember t (record : Otp.Record.t) =
+    let key = record.subject, record.kind in
+    Option.iter (Hashtbl.find_and_remove t.by_key key) ~f:(Hashtbl.remove t.by_challenge);
+    Option.iter record.challenge ~f:(fun c ->
+      Hashtbl.set t.by_challenge ~key:c.id ~data:key;
+      Hashtbl.set t.by_key ~key ~data:c.id)
+  ;;
+
+  let load t ~subject ~kind =
+    let%map record = Store.load t.store ~subject ~kind in
+    Option.iter record ~f:(remember t);
+    record
+  ;;
+
+  let save t record ~expected_version =
+    match%map Store.save t.store record ~expected_version with
+    | `Saved ->
+      remember t record;
+      `Saved
+    | `Conflict -> `Conflict
+  ;;
+
+  (* The index can lag the store (another process saved, or this one restarted), so a hit
+     is confirmed against the stored record before it is answered. *)
+  let find_challenge t ~challenge_id =
+    match Hashtbl.find t.by_challenge challenge_id with
+    | None -> return None
+    | Some (subject, kind) ->
+      let%map record = load t ~subject ~kind in
+      (match record with
+       | Some { challenge = Some c; _ } when String.equal c.id challenge_id ->
+         Some (subject, kind)
+       | _ ->
+         Hashtbl.remove t.by_challenge challenge_id;
+         None)
+  ;;
+end
+
 let check (type a) (module Store : S with type t = a) (store : a) =
   let open Deferred.Or_error.Let_syntax in
   let expect label ok =
