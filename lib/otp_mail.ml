@@ -9,3 +9,4 @@ module Otp = Otp
 module Otp_store = Otp_store
 module Otp_service = Otp_service
 module Template = Template
+module Code_email = Code_email
