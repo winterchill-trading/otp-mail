@@ -31,6 +31,8 @@ module Locale = struct
   let es = "es"
   let it = "it"
   let pt = "pt"
+  let ru = "ru"
+  let ky = "ky"
 
   let t_of_sexp sexp =
     match of_string (String.t_of_sexp sexp) with
@@ -99,9 +101,10 @@ type 'params t =
   ; samples : 'params list
   ; must_mention : 'params -> string list
   ; renderers : (Locale.t * ('params -> Rendered.t)) list
+  ; review_pending : Locale.t list
   }
 
-let create ~name ~samples ?(must_mention = fun _ -> []) renderers =
+let create ~name ~samples ?(must_mention = fun _ -> []) ?(review_pending = []) renderers =
   if String.is_empty name then raise_s [%message "Template.create: empty name"];
   if List.is_empty renderers then raise_s [%message "Template.create: no renderers" name];
   if List.is_empty samples then raise_s [%message "Template.create: no samples" name];
@@ -109,9 +112,23 @@ let create ~name ~samples ?(must_mention = fun _ -> []) renderers =
    | Some locale ->
      raise_s [%message "Template.create: locale given twice" name (locale : Locale.t)]
    | None -> ());
-  { name; samples; must_mention; renderers }
+  List.iter review_pending ~f:(fun locale ->
+    if not (List.Assoc.mem renderers locale ~equal:Locale.equal)
+    then
+      raise_s
+        [%message
+          "Template.create: review pending for a locale without a renderer"
+            name
+            (locale : Locale.t)]);
+  { name
+  ; samples
+  ; must_mention
+  ; renderers
+  ; review_pending = List.dedup_and_sort review_pending ~compare:Locale.compare
+  }
 ;;
 
+let review_pending t = t.review_pending
 let name t = t.name
 let locales t = List.map t.renderers ~f:fst
 let has t locale = List.Assoc.mem t.renderers locale ~equal:Locale.equal
@@ -239,6 +256,11 @@ module Catalogue = struct
              ; Option.to_list (html_balance html)
              ])
       ]
+  ;;
+
+  let review_pending templates =
+    List.concat_map templates ~f:(fun (T t) ->
+      List.map t.review_pending ~f:(fun locale -> t.name, locale))
   ;;
 
   let check ?(required_locales = []) templates =

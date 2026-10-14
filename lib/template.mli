@@ -46,6 +46,12 @@ module Locale : sig
   (** Portuguese. *)
   val pt : t
 
+  (** Russian. *)
+  val ru : t
+
+  (** Kyrgyz. *)
+  val ky : t
+
   module Stable : sig
     module V1 : sig
       type nonrec t = t [@@deriving sexp, bin_io, compare, equal, hash, stable_witness]
@@ -76,14 +82,23 @@ type 'params t
     the catalogue check renders with; [must_mention params] lists strings each rendering
     must contain (the code in a code email, say).
 
-    Raises if [renderers] or [samples] is empty, [name] is empty, or a locale appears
-    twice: these are mistakes in the program, not in its input. *)
+    [review_pending] lists locales whose wording has not yet been reviewed by a native
+    speaker. They render like any other; {!Catalogue.review_pending} lists them so a
+    release check or a translator can find them.
+
+    Raises if [renderers] or [samples] is empty, [name] is empty, a locale appears twice
+    or a locale in [review_pending] has no renderer: these are mistakes in the program,
+    not in its input. *)
 val create
   :  name:string
   -> samples:'params list
   -> ?must_mention:('params -> string list)
+  -> ?review_pending:Locale.t list
   -> (Locale.t * ('params -> Rendered.t)) list
   -> 'params t
+
+(** [review_pending t] is the locales of [t] awaiting a native speaker's review, sorted. *)
+val review_pending : _ t -> Locale.t list
 
 (** [name t] is the template's name. *)
 val name : _ t -> string
@@ -121,6 +136,10 @@ module Catalogue : sig
       }
     [@@deriving sexp, compare, equal]
   end
+
+  (** [review_pending templates] is every (template name, locale) whose wording awaits a
+      native speaker's review. It is not a problem for {!check}. *)
+  val review_pending : template list -> (string * Locale.t) list
 
   (** [check ?required_locales templates] renders every template in every locale it has
       with every sample and reports:
