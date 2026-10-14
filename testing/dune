@@ -1,0 +1,6 @@
+(library
+ (name otp_mail_testing)
+ (public_name otp-mail.testing)
+ (libraries otp-mail core async async_ssl)
+ (preprocess
+  (pps ppx_jane)))
